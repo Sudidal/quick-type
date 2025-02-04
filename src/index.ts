@@ -11,42 +11,68 @@ let words: string[];
 let index = 0;
 let correctCount = 0;
 
+let wordsDisplayMax = 25;
+let displayedWordsIndex = 0;
+
+let curTimer: ReturnType<typeof startTimer> | null;
+
 inputField?.addEventListener("input", onInput);
 inputField?.addEventListener("beforeinput", onBeforeInput);
 restartBtn?.addEventListener("click", start);
 
-async function start() {
-  if (!wordsBox) return;
-
-  const wordsData = await getWords();
-  words = wordsData ?? [];
+function reset() {
   inputField.value = "";
   index = 0;
   correctCount = 0;
+  displayedWordsIndex = 0;
+  curTimer?.stop()
+}
+
+async function start() {
+  reset();
+
+  const wordsData = await getWords();
+  words = wordsData ?? [];
+
+  displayWords();
+
+  curTimer = startTimer(
+    60000,
+    1000,
+    (timeLeft) => {
+      if (timer) {
+        timer.textContent = (timeLeft / 1000).toString();
+      }
+    },
+    () => {
+      resultMenu?.setAttribute("style", "display: block;");
+      if (wpmText) wpmText.textContent = correctCount + " WPM";
+    }
+  );
+
+  styleCurWord("still");
+}
+
+function displayWords() {
+  if (!wordsBox) return;
+
+  displayedWordsIndex = 0;
+  const remainingWordsCount = words.length - index;
 
   Array.from(wordsBox.children).forEach((child, f, s) => {
     child.remove();
   });
-  if (words) {
-    words.forEach((word) => {
-      const elem = document.createElement("div");
-      elem.textContent = word;
-      elem.className = "word";
-      wordsBox.append(elem);
-    });
+  for (
+    let i = 0, offset = index;
+    i < Math.min(wordsDisplayMax, remainingWordsCount);
+    i++, offset++
+  ) {
+    const word = words[offset];
+    const elem = document.createElement("div");
+    elem.textContent = word;
+    elem.className = "word";
+    wordsBox.append(elem);
   }
-
-  startTimer(60000, 1000, (timeLeft) => {
-    if (timer) {
-      timer.textContent = (timeLeft / 1000).toString();
-    }
-  }, () => {
-    resultMenu?.setAttribute("style", "display: block;")
-    if(wpmText)
-    wpmText.textContent = correctCount + " WPM"
-  });
-
-  styleCurWord("still");
 }
 
 function onInput(ev: Event) {
@@ -72,8 +98,15 @@ function next() {
   } else {
     styleCurWord("wrong");
   }
+
   inputField.value = "";
   index++;
+  displayedWordsIndex++;
+
+  if (displayedWordsIndex >= wordsDisplayMax) {
+    displayWords();
+  }
+
   styleCurWord("still");
 }
 
@@ -88,21 +121,21 @@ function isPartiallyCorrect() {
 }
 
 function styleCurWord(state: "still" | "correct" | "wrong") {
-  if (wordsBox) {
-    wordsBox.children[index].classList.add("current");
-    switch (state) {
-      case "correct":
-        wordsBox.children[index].classList.add("correct");
-        wordsBox.children[index].classList.remove("wrong");
-        break;
-      case "wrong":
-        wordsBox.children[index].classList.add("wrong");
-        wordsBox.children[index].classList.remove("correct");
-        break;
-    }
-    if (index > 0) {
-      wordsBox.children[index - 1].classList.remove("current");
-    }
+  if (!wordsBox || !wordsBox.children[displayedWordsIndex]) return;
+
+  wordsBox.children[displayedWordsIndex].classList.add("current");
+  switch (state) {
+    case "correct":
+      wordsBox.children[displayedWordsIndex].classList.add("correct");
+      wordsBox.children[displayedWordsIndex].classList.remove("wrong");
+      break;
+    case "wrong":
+      wordsBox.children[displayedWordsIndex].classList.add("wrong");
+      wordsBox.children[displayedWordsIndex].classList.remove("correct");
+      break;
+  }
+  if (displayedWordsIndex > 0) {
+    wordsBox.children[displayedWordsIndex - 1].classList.remove("current");
   }
 }
 
@@ -113,8 +146,12 @@ function startTimer(
   finishCb?: () => void
 ) {
   let timeMs = durationMs;
+  let stopped = false;
   loop();
+
   function loop() {
+    if (stopped) return;
+
     timeMs -= updateEveryMs;
 
     if (updateCb) {
@@ -131,6 +168,10 @@ function startTimer(
       }
     }, updateEveryMs);
   }
+
+  return {stop: () => {
+    stopped = true;
+  }}
 }
 
 start();
