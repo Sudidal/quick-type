@@ -1,2 +1,3 @@
 # quick-type
-simple typing test
+
+We're just testing TypeScript baby!

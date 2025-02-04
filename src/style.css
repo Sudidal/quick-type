@@ -1,0 +1,25 @@
+* {
+  font-family: sans-serif;
+  box-sizing: border-box;
+}
+
+.words-box {
+  width: 70%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.word {
+  padding: 10px;
+}
+
+.current {
+  background-color: rgba(128, 128, 128, 0.384);
+}
+.correct {
+  color: rgb(50, 128, 50);
+}
+.wrong {
+  color: rgb(128, 50, 50);
+}
