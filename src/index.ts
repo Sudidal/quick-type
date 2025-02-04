@@ -2,7 +2,7 @@ import { getWords } from "./words";
 
 const wordsBox = document.querySelector(".words-box");
 const inputField = document.getElementById("input-field") as HTMLInputElement;
-const timer = document.querySelector(".timer");
+const timer = document.querySelector(".timer-text");
 const restartBtn = document.querySelector(".restart-btn");
 const resultMenu = document.querySelector(".result-menu");
 const wpmText = document.querySelector(".wpm");
@@ -11,7 +11,7 @@ let words: string[];
 let index = 0;
 let correctCount = 0;
 
-let wordsDisplayMax = 25;
+let wordsDisplayMax = 18;
 let displayedWordsIndex = 0;
 
 let curTimer: ReturnType<typeof startTimer> | null;
@@ -25,7 +25,7 @@ function reset() {
   index = 0;
   correctCount = 0;
   displayedWordsIndex = 0;
-  curTimer?.stop()
+  curTimer?.stop();
 }
 
 async function start() {
@@ -40,12 +40,14 @@ async function start() {
     60000,
     1000,
     (timeLeft) => {
+      const seconds = (timeLeft / 1000).toString();
+      const timeResult = `0:${seconds.length < 2 ? "0" + seconds : seconds}`;
       if (timer) {
-        timer.textContent = (timeLeft / 1000).toString();
+        timer.textContent = timeResult;
       }
     },
     () => {
-      resultMenu?.setAttribute("style", "display: block;");
+      resultMenu?.setAttribute("style", "");
       if (wpmText) wpmText.textContent = correctCount + " WPM";
     }
   );
@@ -76,6 +78,7 @@ function displayWords() {
 }
 
 function onInput(ev: Event) {
+  curTimer?.start()
   if (ev instanceof InputEvent) {
     const state = isPartiallyCorrect() ? "correct" : "wrong";
     styleCurWord(state);
@@ -146,8 +149,12 @@ function startTimer(
   finishCb?: () => void
 ) {
   let timeMs = durationMs;
+  let started = false;
   let stopped = false;
-  loop();
+
+  if (updateCb) {
+    updateCb(timeMs);
+  }
 
   function loop() {
     if (stopped) return;
@@ -169,9 +176,17 @@ function startTimer(
     }, updateEveryMs);
   }
 
-  return {stop: () => {
-    stopped = true;
-  }}
+  return {
+    stop: () => {
+      stopped = true;
+    },
+    start: () => {
+      if (!started) {
+        started = true;
+        loop();
+      }
+    },
+  };
 }
 
 start();
